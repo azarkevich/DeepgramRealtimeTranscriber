@@ -33,15 +33,20 @@ func (c MyCallback) Message(mr *api.MessageResponse) error {
 	}
 
 	if mr.IsFinal {
+		fmt.Printf("\r[Speech  F]: %s", sentence)
+		fmt.Println()
+
 		c.sb.WriteString(sentence)
 		c.sb.WriteString(" ")
 
 		if mr.SpeechFinal {
-			fmt.Printf("[------- Is Final]: %s\n", c.sb.String())
+			//fmt.Printf("\r[Speech FF]: %s", c.sb.String())
+			fmt.Println()
+
 			c.sb.Reset()
 		}
 	} else {
-		fmt.Printf("[Interm Result]: %s\n", sentence)
+		fmt.Printf("\r[Speech...]: %s", sentence)
 	}
 
 	return nil
@@ -49,7 +54,7 @@ func (c MyCallback) Message(mr *api.MessageResponse) error {
 
 func (c MyCallback) Open(ocr *api.OpenResponse) error {
 	// handle the open
-	fmt.Printf("\n[Open] Received\n")
+	//fmt.Printf("\n[Open] Received\n")
 	return nil
 }
 
@@ -63,17 +68,17 @@ func (c MyCallback) Metadata(md *api.MetadataResponse) error {
 }
 
 func (c MyCallback) SpeechStarted(ssr *api.SpeechStartedResponse) error {
-	fmt.Printf("\n[SpeechStarted] Received\n")
+	//fmt.Printf("\n[SpeechStarted] Received\n")
 	return nil
 }
 
 func (c MyCallback) UtteranceEnd(ur *api.UtteranceEndResponse) error {
 	utterance := strings.TrimSpace(c.sb.String())
 	if len(utterance) > 0 {
-		fmt.Printf("[------- UtteranceEnd]: %s\n", utterance)
+		//fmt.Printf("[------- UtteranceEnd]: %s\n", utterance)
 		c.sb.Reset()
 	} else {
-		fmt.Printf("\n[UtteranceEnd] Received\n")
+		//fmt.Printf("\n[UtteranceEnd] Received\n")
 	}
 
 	return nil
