@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	api "github.com/deepgram/deepgram-go-sdk/pkg/api/listen/v1/websocket/interfaces"
 	interfaces "github.com/deepgram/deepgram-go-sdk/pkg/client/interfaces"
@@ -21,7 +22,9 @@ import (
 
 // Implement your own callback
 type MyCallback struct {
-	sb *strings.Builder
+	startAt         time.Time
+	unsavedSentence *strings.Builder
+	transcriptFile  *os.File
 }
 
 func (c MyCallback) Message(mr *api.MessageResponse) error {
@@ -33,20 +36,28 @@ func (c MyCallback) Message(mr *api.MessageResponse) error {
 	}
 
 	if mr.IsFinal {
-		fmt.Printf("\r[Speech  F]: %s", sentence)
+
+		duration := time.Duration(mr.Start * float64(time.Second))
+		sentenceTime := fmt.Sprintf("[%s]", c.startAt.Add(duration).Format("15:04:05"))
+
+		c.transcriptFile.WriteString(sentenceTime)
+		c.transcriptFile.WriteString(" ")
+		c.transcriptFile.WriteString(sentence)
+		c.transcriptFile.WriteString("\n")
+		c.unsavedSentence.Reset()
+
+		fmt.Printf("\r%v %s", sentenceTime, sentence)
 		fmt.Println()
 
-		c.sb.WriteString(sentence)
-		c.sb.WriteString(" ")
-
 		if mr.SpeechFinal {
-			//fmt.Printf("\r[Speech FF]: %s", c.sb.String())
+			c.transcriptFile.WriteString("\n")
 			fmt.Println()
-
-			c.sb.Reset()
 		}
 	} else {
-		fmt.Printf("\r[Speech...]: %s", sentence)
+		fmt.Printf("\r[........] %s", sentence)
+
+		c.unsavedSentence.WriteString(sentence)
+		c.unsavedSentence.WriteString(" ")
 	}
 
 	return nil
@@ -73,13 +84,6 @@ func (c MyCallback) SpeechStarted(ssr *api.SpeechStartedResponse) error {
 }
 
 func (c MyCallback) UtteranceEnd(ur *api.UtteranceEndResponse) error {
-	utterance := strings.TrimSpace(c.sb.String())
-	if len(utterance) > 0 {
-		//fmt.Printf("[------- UtteranceEnd]: %s\n", utterance)
-		c.sb.Reset()
-	} else {
-		//fmt.Printf("\n[UtteranceEnd] Received\n")
-	}
 
 	return nil
 }
@@ -87,6 +91,16 @@ func (c MyCallback) UtteranceEnd(ur *api.UtteranceEndResponse) error {
 func (c MyCallback) Close(ocr *api.CloseResponse) error {
 	// handle the close
 	fmt.Printf("\n[Close] Received\n")
+
+	if c.unsavedSentence.Len() > 0 {
+		fmt.Printf("\n[Close] Saving unsaved: %s\n", c.unsavedSentence.String())
+		c.transcriptFile.WriteString(c.unsavedSentence.String())
+		c.transcriptFile.WriteString("\n")
+		c.unsavedSentence.Reset()
+	}
+
+	c.transcriptFile.Close()
+
 	return nil
 }
 
@@ -150,9 +164,19 @@ func main() {
 	// params["dictation"] = []string{"true"}
 	// ctx = interfaces.WithCustomParameters(ctx, params)
 
+	now := time.Now()
+	transcriptFileName := "transcript_" + now.Format("20060102_150405.000.txt")
+	fmt.Printf("Transcript to : %s\n", transcriptFileName)
+	f, err := os.Create(transcriptFileName)
+	if err != nil {
+		panic(err)
+	}
+
 	// implement your own callback
 	callback := MyCallback{
-		sb: &strings.Builder{},
+		unsavedSentence: &strings.Builder{},
+		transcriptFile:  f,
+		startAt:         now,
 	}
 
 	// create a Deepgram client
@@ -213,5 +237,4 @@ func main() {
 	dgClient.Stop()
 
 	fmt.Printf("\n\nProgram exiting...\n")
-	// time.Sleep(120 * time.Second)
 }
