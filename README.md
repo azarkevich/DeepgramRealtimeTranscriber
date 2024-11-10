@@ -48,11 +48,11 @@ pacman -S mingw-w64-x86_64-portaudio
 ```
 
 3. Add path to bin with gcc to PATH
-In my cae it was `C:\msys64\mingw64\bin`
+In my case it was `C:\msys64\mingw64\bin`
 
 Try execute in started console `gcc` to see if PATH is ok. Try reboot if path not applied.
 
-4. Find in main.go line where device name specified, and change it to your device.
+4. Find in `main.go` line where device name specified, and change it to your device.
 
 ```go
 	DeviceNameRx:  `CABLE\s*Output`,
