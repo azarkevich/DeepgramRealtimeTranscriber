@@ -198,7 +198,7 @@ func main() {
 	*/
 	// mic stuf
 	mic, err := microphone.New(microphone.AudioConfig{
-		DeviceNameRx:  `Stereo\s*Mix`,
+		DeviceNameRx:  `CABLE\s*Output`,
 		InputChannels: 1,
 		SamplingRate:  16000,
 	})
